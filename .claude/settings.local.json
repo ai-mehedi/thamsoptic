@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.zen.co.uk)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma init:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npx drizzle-kit push:*)",
+      "Bash(npm run db:seed:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npm run build:*)",
+      "Bash(del dev.db)",
+      "Bash(cmd /c \"del dev.db\")",
+      "Bash(powershell -Command:*)",
+      "WebFetch(domain:thamesoptic.com)",
+      "WebSearch",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

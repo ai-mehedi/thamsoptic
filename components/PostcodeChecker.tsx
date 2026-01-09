@@ -3,12 +3,16 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, Loader2, Check, AlertTriangle, X, Home, ChevronRight } from 'lucide-react';
 
-interface Address {
-    id: string;
-    line1: string;
-    line2: string;
-    town: string;
-    postcode: string;
+interface OpenreachAddress {
+    thoroughfareNumber: string;
+    thoroughfareName: string;
+    subPremisesName: string;
+    premisesName: string;
+    postTown: string;
+    postCode: string;
+    country: string;
+    districtCode: string;
+    refNum: string;
 }
 
 interface Package {
@@ -19,6 +23,7 @@ interface Package {
     description: string;
     features: string[];
     isPopular: boolean;
+    technology?: string;
 }
 
 interface PostcodeCheckerProps {
@@ -30,13 +35,13 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
     const router = useRouter();
     const [postcode, setPostcode] = useState('');
     const [isChecking, setIsChecking] = useState(false);
+    const [isCheckingLine, setIsCheckingLine] = useState(false);
     const [result, setResult] = useState<'available' | 'unavailable' | null>(null);
     const [packages, setPackages] = useState<Package[]>([]);
-    const [addresses, setAddresses] = useState<Address[]>([]);
+    const [addresses, setAddresses] = useState<OpenreachAddress[]>([]);
     const [showModal, setShowModal] = useState(false);
-    const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+    const [selectedAddress, setSelectedAddress] = useState<OpenreachAddress | null>(null);
     const [validatedPostcode, setValidatedPostcode] = useState('');
-    const [town, setTown] = useState('');
     const [error, setError] = useState('');
 
     const validatePostcode = (pc: string) => {
@@ -44,17 +49,21 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
         return postcodeRegex.test(pc.trim());
     };
 
-    const generateAddresses = (postcodeValue: string, townName: string): Address[] => {
-        const streetNames = ['High Street', 'Church Road', 'Station Road', 'Main Street', 'Park Avenue'];
-        const randomStreet = streetNames[Math.floor(Math.random() * streetNames.length)];
-
-        return Array.from({ length: 6 }, (_, i) => ({
-            id: `addr-${i + 1}`,
-            line1: `${(i + 1) * 2} ${randomStreet}`,
-            line2: '',
-            town: townName,
-            postcode: postcodeValue,
-        }));
+    const formatAddressLine = (address: OpenreachAddress): string => {
+        const parts = [];
+        if (address.subPremisesName && address.subPremisesName !== 'null') {
+            parts.push(address.subPremisesName);
+        }
+        if (address.premisesName && address.premisesName !== 'null') {
+            parts.push(address.premisesName);
+        }
+        if (address.thoroughfareNumber && address.thoroughfareNumber !== 'null') {
+            parts.push(address.thoroughfareNumber);
+        }
+        if (address.thoroughfareName && address.thoroughfareName !== 'null') {
+            parts.push(address.thoroughfareName);
+        }
+        return parts.join(' ') || 'Unknown Address';
     };
 
     const handleCheck = async () => {
@@ -77,56 +86,72 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
         setIsChecking(true);
 
         try {
-            // First validate with postcodes.io
-            const postcodeResponse = await fetch(
-                `https://api.postcodes.io/postcodes/${encodeURIComponent(postcode.trim().replace(/\s/g, ''))}`
+            // Call Openreach Address Search API
+            const response = await fetch(
+                `/api/openreach/address-search?postcode=${encodeURIComponent(postcode.trim().replace(/\s/g, ''))}`
             );
-            const postcodeData = await postcodeResponse.json();
+            const data = await response.json();
 
-            if (postcodeData.status !== 200 || !postcodeData.result) {
-                setResult('unavailable');
-                setIsChecking(false);
-                return;
-            }
-
-            const formattedPostcode = postcodeData.result.postcode;
-            const townName = postcodeData.result.admin_district || 'London';
-            setValidatedPostcode(formattedPostcode);
-            setTown(townName);
-
-            // Check coverage in our database
-            const coverageResponse = await fetch(`/api/coverage/check?postcode=${encodeURIComponent(postcode.trim())}`);
-            const coverageData = await coverageResponse.json();
-
-            if (coverageData.available && coverageData.packages && coverageData.packages.length > 0) {
-                setPackages(coverageData.packages);
-                setAddresses(generateAddresses(formattedPostcode, townName));
+            if (data.success && data.addresses && data.addresses.length > 0) {
+                setAddresses(data.addresses);
+                setValidatedPostcode(data.postcode);
                 setShowModal(true);
             } else {
+                // No addresses found - show unavailable
                 setResult('unavailable');
             }
-        } catch {
+        } catch (err) {
+            console.error('Postcode check error:', err);
             setError('Unable to check postcode. Please try again.');
         } finally {
             setIsChecking(false);
         }
     };
 
-    const handleSelectAddress = (address: Address) => {
+    const handleSelectAddress = async (address: OpenreachAddress) => {
         setSelectedAddress(address);
         setShowModal(false);
-        setResult('available');
+        setIsCheckingLine(true);
+
+        try {
+            // Call Openreach Line Check API
+            const response = await fetch(
+                `/api/openreach/line-check?refnum=${encodeURIComponent(address.refNum)}&districtcode=${encodeURIComponent(address.districtCode)}`
+            );
+            const data = await response.json();
+
+            if (data.success && data.hasService && data.packages.length > 0) {
+                setPackages(data.packages);
+                setResult('available');
+            } else {
+                setResult('unavailable');
+            }
+        } catch (err) {
+            console.error('Line check error:', err);
+            setResult('unavailable');
+        } finally {
+            setIsCheckingLine(false);
+        }
     };
 
     const handleSelectPackage = (pkg: Package) => {
+        if (!selectedAddress) return;
+
         const orderData = {
-            postcode: selectedAddress?.postcode || validatedPostcode,
-            address: selectedAddress ? `${selectedAddress.line1}, ${selectedAddress.town}` : '',
-            town: selectedAddress?.town || town,
+            postcode: selectedAddress.postCode,
+            address: formatAddressLine(selectedAddress),
+            town: selectedAddress.postTown,
+            thoroughfareNumber: selectedAddress.thoroughfareNumber,
+            thoroughfareName: selectedAddress.thoroughfareName,
+            subPremisesName: selectedAddress.subPremisesName,
+            premisesName: selectedAddress.premisesName,
+            districtCode: selectedAddress.districtCode,
+            refNum: selectedAddress.refNum,
             packageId: pkg.id,
             packageName: pkg.name,
             packageSpeed: pkg.speed,
             packagePrice: pkg.price,
+            technology: pkg.technology,
         };
 
         sessionStorage.setItem('orderData', JSON.stringify(orderData));
@@ -139,7 +164,6 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
 
     const handleCloseModal = () => {
         setShowModal(false);
-        setPackages([]);
         setAddresses([]);
     };
 
@@ -196,7 +220,9 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
                         <div className="bg-blue-800 text-white p-5 flex items-center justify-between">
                             <div>
                                 <h2 className="text-lg font-bold">Select Your Address</h2>
-                                <p className="text-blue-100 text-sm mt-0.5">{validatedPostcode} - {town}</p>
+                                <p className="text-blue-100 text-sm mt-0.5">
+                                    {validatedPostcode} - {addresses.length} addresses found
+                                </p>
                             </div>
                             <button
                                 onClick={handleCloseModal}
@@ -208,9 +234,9 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
 
                         <div className="overflow-y-auto max-h-[60vh]">
                             <div className="p-2">
-                                {addresses.map((address) => (
+                                {addresses.map((address, index) => (
                                     <button
-                                        key={address.id}
+                                        key={`${address.refNum}-${index}`}
                                         onClick={() => handleSelectAddress(address)}
                                         className="w-full text-left p-4 hover:bg-blue-50 rounded-xl transition-colors flex items-center gap-4 group"
                                     >
@@ -218,9 +244,11 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
                                             <Home className="w-5 h-5" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-medium text-slate-900 truncate">{address.line1}</p>
+                                            <p className="font-medium text-slate-900 truncate">
+                                                {formatAddressLine(address)}
+                                            </p>
                                             <p className="text-sm text-slate-500 truncate">
-                                                {address.town}, {address.postcode}
+                                                {address.postTown}, {address.postCode}
                                             </p>
                                         </div>
                                         <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
@@ -231,15 +259,28 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
 
                         <div className="border-t border-slate-100 p-4 bg-slate-50">
                             <p className="text-xs text-slate-500 text-center">
-                                Can&apos;t find your address? <button className="text-blue-800 hover:underline font-medium">Enter manually</button>
+                                Can&apos;t find your address? <button className="text-blue-800 hover:underline font-medium">Contact us</button>
                             </p>
                         </div>
                     </div>
                 </div>
             )}
 
+            {/* Checking Line Status */}
+            {isCheckingLine && (
+                <div className="mt-6 bg-blue-50 border border-blue-200 rounded-2xl p-6 animate-in fade-in duration-300">
+                    <div className="flex items-center gap-4">
+                        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                        <div>
+                            <h3 className="font-bold text-blue-800">Checking available services...</h3>
+                            <p className="text-blue-700 text-sm">Please wait while we check what&apos;s available at your address</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Package Selection */}
-            {showResults && result === 'available' && selectedAddress && packages.length > 0 && (
+            {showResults && result === 'available' && selectedAddress && packages.length > 0 && !isCheckingLine && (
                 <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6">
                         <div className="flex items-center gap-3">
@@ -247,8 +288,10 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
                                 <Check className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-green-800">Great news! Full Fibre is available</h3>
-                                <p className="text-green-700 text-sm">{selectedAddress.line1}, {selectedAddress.town}, {selectedAddress.postcode}</p>
+                                <h3 className="font-bold text-green-800">Great news! Broadband is available</h3>
+                                <p className="text-green-700 text-sm">
+                                    {formatAddressLine(selectedAddress)}, {selectedAddress.postTown}, {selectedAddress.postCode}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -272,6 +315,11 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
                                             {pkg.isPopular && (
                                                 <span className="text-xs bg-blue-800 text-white px-2 py-0.5 rounded-full font-medium">Popular</span>
                                             )}
+                                            {pkg.technology && (
+                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                                                    {pkg.technology}
+                                                </span>
+                                            )}
                                         </div>
                                         <p className="text-sm text-slate-600">{pkg.speed} - {pkg.description}</p>
                                     </div>
@@ -287,7 +335,7 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
             )}
 
             {/* Not Available - Register Interest */}
-            {showResults && result === 'unavailable' && (
+            {showResults && result === 'unavailable' && !isCheckingLine && (
                 <div className="mt-6 bg-amber-50 border border-amber-200 rounded-2xl p-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">

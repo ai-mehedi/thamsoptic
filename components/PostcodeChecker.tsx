@@ -96,13 +96,16 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
                 setAddresses(data.addresses);
                 setValidatedPostcode(data.postcode);
                 setShowModal(true);
+            } else if (data.error) {
+                // API error (connection failed)
+                setError(data.error);
             } else {
                 // No addresses found - show unavailable
                 setResult('unavailable');
             }
         } catch (err) {
             console.error('Postcode check error:', err);
-            setError('Unable to check postcode. Please try again.');
+            setError('Unable to connect to address lookup service. Please try again later.');
         } finally {
             setIsChecking(false);
         }

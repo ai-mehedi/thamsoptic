@@ -161,42 +161,6 @@ async function makeOpenreachRequest(xmlData: string): Promise<string> {
   });
 }
 
-// Generate fallback packages when Openreach is unavailable
-function generateFallbackPackages(isSpecialArea: boolean = false) {
-  return [
-    {
-      id: 'ultra',
-      name: 'Broadband Anywhere Ultra',
-      speed: '500 Mbit/s',
-      price: isSpecialArea ? 30.00 : 50.00,
-      description: 'Perfect for offices, UHD streaming & heavy usage',
-      features: ['500 Mbps download', 'Unlimited data', 'Free router', 'Static IP available'],
-      isPopular: true,
-      technology: 'FTTP',
-    },
-    {
-      id: 'plus',
-      name: 'Broadband Anywhere Plus',
-      speed: '68.36 Mbit/s',
-      price: 34.99,
-      description: 'Great for higher usage & heavier users',
-      features: ['68 Mbps download', 'Unlimited data', 'Free router'],
-      isPopular: false,
-      technology: 'FTTC',
-    },
-    {
-      id: 'essential',
-      name: 'Broadband Anywhere Essential',
-      speed: '37 Mbit/s',
-      price: isSpecialArea ? 16.50 : 31.99,
-      description: 'Perfect for low users & occasional usage',
-      features: ['37 Mbps download', 'Unlimited data', 'Free router'],
-      isPopular: false,
-      technology: 'FTTC',
-    },
-  ];
-}
-
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const refNum = searchParams.get('refnum');
@@ -207,12 +171,6 @@ export async function GET(request: NextRequest) {
       error: 'refnum and districtcode are required'
     }, { status: 400 });
   }
-
-  // Check if this is a special pricing area (SE7, E13, etc.)
-  const specialAreas = ['SE7', 'E13', 'SE18', 'SE10'];
-  const isSpecialArea = specialAreas.some(area =>
-    districtCode.toUpperCase().startsWith(area)
-  );
 
   try {
     const xmlRequest = buildLineCharacteristicsXML(refNum, districtCode);
@@ -264,30 +222,13 @@ export async function GET(request: NextRequest) {
       availability: availability,
       packages: packages,
       hasService: packages.length > 0,
-      source: 'openreach',
     });
   } catch (error) {
     console.error('Openreach Line Check error:', error);
-
-    // Fallback: Return all packages when Openreach is unavailable
-    console.log('Falling back to default packages...');
-    const packages = generateFallbackPackages(isSpecialArea);
-
     return NextResponse.json({
-      success: true,
-      availability: {
-        fttcAvailable: true,
-        fttpAvailable: true,
-        sogeaAvailable: true,
-        copperAvailable: true,
-        isSpecialPricing: isSpecialArea,
-        l2sIds: [],
-        technologies: ['FTTP', 'FTTC', 'SOGEA', 'Copper'],
-      },
-      packages: packages,
-      hasService: true,
-      source: 'fallback',
-      warning: 'Openreach API unavailable, showing all available packages',
-    });
+      success: false,
+      error: 'Unable to check line availability. Please try again later.',
+      details: error instanceof Error ? error.message : 'Connection failed',
+    }, { status: 503 });
   }
 }

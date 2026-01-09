@@ -180,48 +180,12 @@ async function makeOpenreachRequest(xmlData: string): Promise<string> {
   });
 }
 
-// Fallback: Generate mock addresses when Openreach API is unavailable
-function generateFallbackAddresses(postcode: string): OpenreachAddress[] {
-  const streetNames = ['High Street', 'Church Road', 'Station Road', 'Main Street', 'Park Avenue', 'Victoria Road'];
-  const towns = ['London', 'Greenwich', 'Woolwich', 'Charlton', 'Blackheath'];
-  const randomStreet = streetNames[Math.floor(Math.random() * streetNames.length)];
-  const randomTown = towns[Math.floor(Math.random() * towns.length)];
-
-  // Generate district code from postcode (first part)
-  const districtCode = postcode.replace(/\s/g, '').substring(0, 4).toUpperCase();
-
-  return Array.from({ length: 8 }, (_, i) => ({
-    thoroughfareNumber: String((i + 1) * 2),
-    thoroughfareName: randomStreet,
-    subPremisesName: i % 3 === 0 ? `Flat ${i + 1}` : '',
-    premisesName: i % 4 === 0 ? `${['Oak', 'Elm', 'Cedar', 'Pine'][i % 4]} House` : '',
-    postTown: randomTown,
-    postCode: postcode.toUpperCase(),
-    country: 'UK',
-    districtCode: districtCode,
-    refNum: `${Date.now()}${i}`, // Generate unique refNum
-  }));
-}
-
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const postcode = searchParams.get('postcode');
-  const useFallback = searchParams.get('fallback') === 'true';
 
   if (!postcode) {
     return NextResponse.json({ error: 'Postcode is required' }, { status: 400 });
-  }
-
-  // If fallback is explicitly requested, skip Openreach API
-  if (useFallback) {
-    const addresses = generateFallbackAddresses(postcode);
-    return NextResponse.json({
-      success: true,
-      postcode: postcode,
-      addresses: addresses,
-      count: addresses.length,
-      source: 'fallback',
-    });
   }
 
   try {
@@ -234,22 +198,13 @@ export async function GET(request: NextRequest) {
       postcode: postcode,
       addresses: addresses,
       count: addresses.length,
-      source: 'openreach',
     });
   } catch (error) {
     console.error('Openreach API error:', error);
-
-    // Fallback to generated addresses when Openreach is unavailable
-    console.log('Falling back to generated addresses...');
-    const addresses = generateFallbackAddresses(postcode);
-
     return NextResponse.json({
-      success: true,
-      postcode: postcode,
-      addresses: addresses,
-      count: addresses.length,
-      source: 'fallback',
-      warning: 'Openreach API unavailable, showing sample addresses',
-    });
+      success: false,
+      error: 'Unable to connect to Openreach. Please check your network connection.',
+      details: error instanceof Error ? error.message : 'Connection failed',
+    }, { status: 503 });
   }
 }

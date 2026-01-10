@@ -117,18 +117,19 @@ function parseAddressResponse(xml: string): OpenreachAddress[] {
     return match ? match[1] : '';
   };
 
-  // Parse AddressSearchResultLine entries (with namespace prefix support)
-  const lineRegex = /<(?:[a-z0-9]+:)?AddressSearchResultLine[^>]*>([\s\S]*?)<\/(?:[a-z0-9]+:)?AddressSearchResultLine>/gi;
-  let lineMatch;
+  // Parse Site entries (addresses are in <ns1:Site> tags)
+  const siteRegex = /<(?:[a-z0-9]+:)?Site[^>]*>([\s\S]*?)<\/(?:[a-z0-9]+:)?Site>/gi;
+  let siteMatch;
 
-  while ((lineMatch = lineRegex.exec(xml)) !== null) {
-    const lineContent = lineMatch[1];
+  while ((siteMatch = siteRegex.exec(xml)) !== null) {
+    const siteContent = siteMatch[1];
 
     // Get BritishAddress content
-    const addressContent = getTagContent(lineContent, 'BritishAddress') || lineContent;
+    const addressContent = getTagContent(siteContent, 'BritishAddress');
+    if (!addressContent) continue;
 
-    // Get UPRN content for RefNum and DistrictCode
-    const uprnContent = getTagContent(lineContent, 'UPRN');
+    // Get AddressReference content for RefNum and DistrictCode
+    const addressRefContent = getTagContent(siteContent, 'AddressReference');
 
     const address: OpenreachAddress = {
       thoroughfareNumber: getTagValue(addressContent, 'ThoroughfareNumber'),
@@ -138,8 +139,8 @@ function parseAddressResponse(xml: string): OpenreachAddress[] {
       postTown: getTagValue(addressContent, 'PostTown'),
       postCode: getTagValue(addressContent, 'PostCode'),
       country: getTagValue(addressContent, 'Country'),
-      districtCode: getTagValue(uprnContent, 'DistrictCode'),
-      refNum: getTagValue(uprnContent, 'RefNum'),
+      districtCode: getTagValue(addressRefContent, 'DistrictCode'),
+      refNum: getTagValue(addressRefContent, 'RefNum'),
     };
 
     // Only add if we have a valid address
@@ -234,11 +235,6 @@ export async function GET(request: NextRequest) {
   try {
     const xmlRequest = buildAddressSearchXML(postcode.replace(/\s/g, ''));
     const xmlResponse = await makeOpenreachRequest(xmlRequest);
-
-    // Log the FULL raw response for debugging
-    console.log('=== FULL OPENREACH XML RESPONSE START ===');
-    console.log(xmlResponse);
-    console.log('=== FULL OPENREACH XML RESPONSE END ===');
 
     const addresses = parseAddressResponse(xmlResponse);
     console.log('Parsed addresses count:', addresses.length);

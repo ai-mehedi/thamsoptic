@@ -128,11 +128,22 @@ function parseLineCharacteristicsResponse(xml: string): TechnologyAvailability {
 async function makeOpenreachRequest(xmlData: string): Promise<string> {
   const certPath = path.join(process.cwd(), 'certs', 'api.crt.pem');
   const keyPath = path.join(process.cwd(), 'certs', 'api.key.pem');
+  const caPath = path.join(process.cwd(), 'certs', 'cacert.pem');
 
   const cert = fs.readFileSync(certPath);
   const key = fs.readFileSync(keyPath);
+  const ca = fs.readFileSync(caPath);
 
   const url = new URL(OPENREACH_URL);
+
+  // Create an HTTPS agent with mTLS configuration
+  const agent = new https.Agent({
+    cert: cert,
+    key: key,
+    ca: ca,
+    rejectUnauthorized: false, // Set to true in production if Openreach cert is trusted
+    keepAlive: false,
+  });
 
   const options: https.RequestOptions = {
     hostname: url.hostname,
@@ -140,22 +151,35 @@ async function makeOpenreachRequest(xmlData: string): Promise<string> {
     path: url.pathname,
     method: 'POST',
     headers: {
-      'Content-Type': 'text/xml',
+      'Content-Type': 'text/xml; charset=utf-8',
       'Content-Length': Buffer.byteLength(xmlData),
+      'SOAPAction': '""',
     },
-    cert: cert,
-    key: key,
-    rejectUnauthorized: false,
+    agent: agent,
+    timeout: 30000, // 30 second timeout
   };
 
   return new Promise((resolve, reject) => {
     const req = https.request(options, (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => resolve(data));
+      res.on('end', () => {
+        agent.destroy(); // Clean up the agent
+        resolve(data);
+      });
     });
 
-    req.on('error', (error) => reject(error));
+    req.on('error', (error) => {
+      agent.destroy();
+      reject(error);
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      agent.destroy();
+      reject(new Error('Request timeout'));
+    });
+
     req.write(xmlData);
     req.end();
   });

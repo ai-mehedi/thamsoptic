@@ -232,7 +232,7 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
 
             {/* Address Selection Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="bg-blue-800 text-white p-5 flex items-center justify-between">
                             <div>

@@ -126,13 +126,22 @@ function parseLineCharacteristicsResponse(xml: string): TechnologyAvailability {
 }
 
 async function makeOpenreachRequest(xmlData: string): Promise<string> {
-  const certPath = path.join(process.cwd(), 'certs', 'api.crt.pem');
-  const keyPath = path.join(process.cwd(), 'certs', 'api.key.pem');
-  const caPath = path.join(process.cwd(), 'certs', 'cacert.pem');
+  // Use environment variable or fallback to process.cwd()
+  const basePath = process.env.CERT_PATH || path.join(process.cwd(), 'certs');
+  const certPath = path.join(basePath, 'api.crt.pem');
+  const keyPath = path.join(basePath, 'api.key.pem');
+  const caPath = path.join(basePath, 'cacert.pem');
+
+  // Log paths for debugging
+  console.log('Loading certificates from:', basePath);
+
+  if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
+    throw new Error(`Certificates not found at ${basePath}. Set CERT_PATH environment variable.`);
+  }
 
   const cert = fs.readFileSync(certPath);
   const key = fs.readFileSync(keyPath);
-  const ca = fs.readFileSync(caPath);
+  const ca = fs.existsSync(caPath) ? fs.readFileSync(caPath) : undefined;
 
   const url = new URL(OPENREACH_URL);
 

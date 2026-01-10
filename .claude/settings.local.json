@@ -19,7 +19,8 @@
       "Bash(git add:*)",
       "Bash(openssl x509:*)",
       "Bash(curl:*)",
-      "Bash(openssl rsa:*)"
+      "Bash(openssl rsa:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

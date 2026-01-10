@@ -102,26 +102,33 @@ interface OpenreachAddress {
 function parseAddressResponse(xml: string): OpenreachAddress[] {
   const addresses: OpenreachAddress[] = [];
 
-  // Parse AddressSearchResultLine entries
-  const lineRegex = /<AddressSearchResultLine[^>]*>([\s\S]*?)<\/AddressSearchResultLine>/g;
+  // Helper to get tag value - handles namespace prefixes (e.g., ns1:TagName)
+  const getTagValue = (content: string, tag: string): string => {
+    // Match with or without namespace prefix
+    const regex = new RegExp(`<(?:[a-z0-9]+:)?${tag}[^>]*>([^<]*)</(?:[a-z0-9]+:)?${tag}>`, 'i');
+    const match = content.match(regex);
+    return match ? match[1].trim() : '';
+  };
+
+  // Helper to get tag content (including nested tags) - handles namespace prefixes
+  const getTagContent = (content: string, tag: string): string => {
+    const regex = new RegExp(`<(?:[a-z0-9]+:)?${tag}[^>]*>([\\s\\S]*?)</(?:[a-z0-9]+:)?${tag}>`, 'i');
+    const match = content.match(regex);
+    return match ? match[1] : '';
+  };
+
+  // Parse AddressSearchResultLine entries (with namespace prefix support)
+  const lineRegex = /<(?:[a-z0-9]+:)?AddressSearchResultLine[^>]*>([\s\S]*?)<\/(?:[a-z0-9]+:)?AddressSearchResultLine>/gi;
   let lineMatch;
 
   while ((lineMatch = lineRegex.exec(xml)) !== null) {
     const lineContent = lineMatch[1];
 
-    const getTagValue = (content: string, tag: string): string => {
-      const regex = new RegExp(`<${tag}[^>]*>([^<]*)</${tag}>`, 'i');
-      const match = content.match(regex);
-      return match ? match[1].trim() : '';
-    };
-
     // Get BritishAddress content
-    const britishAddressMatch = lineContent.match(/<BritishAddress[^>]*>([\s\S]*?)<\/BritishAddress>/i);
-    const addressContent = britishAddressMatch ? britishAddressMatch[1] : lineContent;
+    const addressContent = getTagContent(lineContent, 'BritishAddress') || lineContent;
 
-    // Get RefNum and DistrictCode from UPRN
-    const uprnMatch = lineContent.match(/<UPRN[^>]*>([\s\S]*?)<\/UPRN>/i);
-    const uprnContent = uprnMatch ? uprnMatch[1] : '';
+    // Get UPRN content for RefNum and DistrictCode
+    const uprnContent = getTagContent(lineContent, 'UPRN');
 
     const address: OpenreachAddress = {
       thoroughfareNumber: getTagValue(addressContent, 'ThoroughfareNumber'),
@@ -228,9 +235,10 @@ export async function GET(request: NextRequest) {
     const xmlRequest = buildAddressSearchXML(postcode.replace(/\s/g, ''));
     const xmlResponse = await makeOpenreachRequest(xmlRequest);
 
-    // Log the raw response for debugging
-    console.log('Openreach raw response length:', xmlResponse.length);
-    console.log('Openreach response preview:', xmlResponse.substring(0, 500));
+    // Log the FULL raw response for debugging
+    console.log('=== FULL OPENREACH XML RESPONSE START ===');
+    console.log(xmlResponse);
+    console.log('=== FULL OPENREACH XML RESPONSE END ===');
 
     const addresses = parseAddressResponse(xmlResponse);
     console.log('Parsed addresses count:', addresses.length);

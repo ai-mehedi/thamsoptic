@@ -100,8 +100,8 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
                 // API error (connection failed)
                 setError(data.error);
             } else {
-                // No addresses found - show unavailable
-                setResult('unavailable');
+                // No addresses found - show error, NOT "coming soon"
+                setError('No addresses found for this postcode. Please check and try again.');
             }
         } catch (err) {
             console.error('Postcode check error:', err);

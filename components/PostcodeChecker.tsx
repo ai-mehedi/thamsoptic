@@ -49,7 +49,7 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
         return postcodeRegex.test(pc.trim());
     };
 
-    const formatAddressLine = (address: OpenreachAddress): string => {
+    const formatAddressLine = (address: OpenreachAddress, full: boolean = false): string => {
         const parts = [];
         if (address.subPremisesName && address.subPremisesName !== 'null') {
             parts.push(address.subPremisesName);
@@ -63,6 +63,20 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
         if (address.thoroughfareName && address.thoroughfareName !== 'null') {
             parts.push(address.thoroughfareName);
         }
+
+        if (full) {
+            if (address.postTown && address.postTown !== 'null') {
+                parts.push(address.postTown);
+            }
+            if (address.postCode && address.postCode !== 'null') {
+                parts.push(address.postCode);
+            }
+            if (address.country && address.country !== 'null') {
+                parts.push(address.country);
+            }
+            return parts.join(', ') || 'Unknown Address';
+        }
+
         return parts.join(' ') || 'Unknown Address';
     };
 
@@ -247,11 +261,8 @@ export default function PostcodeChecker({ variant = 'default', showResults = tru
                                             <Home className="w-5 h-5" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-medium text-slate-900 truncate">
-                                                {formatAddressLine(address)}
-                                            </p>
-                                            <p className="text-sm text-slate-500 truncate">
-                                                {address.postTown}, {address.postCode}
+                                            <p className="font-medium text-slate-900">
+                                                {formatAddressLine(address, true)}
                                             </p>
                                         </div>
                                         <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" />

@@ -227,7 +227,13 @@ export async function GET(request: NextRequest) {
   try {
     const xmlRequest = buildAddressSearchXML(postcode.replace(/\s/g, ''));
     const xmlResponse = await makeOpenreachRequest(xmlRequest);
+
+    // Log the raw response for debugging
+    console.log('Openreach raw response length:', xmlResponse.length);
+    console.log('Openreach response preview:', xmlResponse.substring(0, 500));
+
     const addresses = parseAddressResponse(xmlResponse);
+    console.log('Parsed addresses count:', addresses.length);
 
     return NextResponse.json({
       success: true,

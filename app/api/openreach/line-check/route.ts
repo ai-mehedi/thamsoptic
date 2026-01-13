@@ -209,13 +209,28 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    console.log('\n========== OPENREACH LINE CHECK DEBUG ==========');
+    console.log('Input refNum:', refNum);
+    console.log('Input districtCode:', districtCode);
+    console.log('Available switch codes:', AVAILABLE_SWITCH_CODES);
+
     const xmlRequest = buildLineCharacteristicsXML(refNum, districtCode);
+    console.log('Sending XML request to Openreach...');
+
     const xmlResponse = await makeOpenreachRequest(xmlRequest);
+    console.log('Raw XML Response length:', xmlResponse.length);
+    console.log('Raw XML Response (first 3000 chars):', xmlResponse.substring(0, 3000));
+
     const availability = parseLineCharacteristicsResponse(xmlResponse);
+    console.log('Parsed availability:', JSON.stringify(availability, null, 2));
+    console.log('L2S IDs found:', availability.l2sIds);
+    console.log('Is service available (L2S match):', availability.isServiceAvailable);
 
     // IMPORTANT: Service is ONLY available if L2S ID matches BAAGNV or BAAFBJ
     // If no match, return empty packages (will show contact form on frontend)
     if (!availability.isServiceAvailable) {
+      console.log('SERVICE NOT AVAILABLE - No matching L2S ID');
+      console.log('========== END LINE CHECK ==========\n');
       return NextResponse.json({
         success: true,
         availability: availability,
@@ -265,14 +280,22 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    const response = {
       success: true,
       availability: availability,
       packages: packages,
       hasService: packages.length > 0,
-    });
+    };
+
+    console.log('SERVICE AVAILABLE - Packages:', packages.length);
+    console.log('RESPONSE:', JSON.stringify(response, null, 2));
+    console.log('========== END LINE CHECK ==========\n');
+
+    return NextResponse.json(response);
   } catch (error) {
+    console.error('\n========== OPENREACH LINE CHECK ERROR ==========');
     console.error('Openreach Line Check error:', error);
+    console.error('========== END ERROR ==========\n');
     return NextResponse.json({
       success: false,
       error: 'Unable to check line availability. Please try again later.',

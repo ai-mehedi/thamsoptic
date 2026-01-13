@@ -8,18 +8,25 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const postcode = searchParams.get('postcode');
 
+    console.log('\n========== COVERAGE CHECK DEBUG ==========');
+    console.log('Input postcode:', postcode);
+
     if (!postcode) {
       return NextResponse.json({ error: 'Postcode is required' }, { status: 400 });
     }
 
     // Extract postcode prefix (outward code) - e.g., "SW1A 1AA" -> "SW1"
     const cleanPostcode = postcode.toUpperCase().replace(/\s/g, '');
+    console.log('Cleaned postcode:', cleanPostcode);
 
     // Try different prefix lengths to find a match
     const prefixes = [];
     if (cleanPostcode.length >= 2) prefixes.push(cleanPostcode.slice(0, 2));
     if (cleanPostcode.length >= 3) prefixes.push(cleanPostcode.slice(0, 3));
     if (cleanPostcode.length >= 4) prefixes.push(cleanPostcode.slice(0, 4));
+
+    console.log('Prefixes to try:', prefixes);
+    console.log('Searching order (longest first):', [...prefixes].reverse());
 
     // Find matching coverage area
     let coverageArea = null;
@@ -37,12 +44,16 @@ export async function GET(request: NextRequest) {
     }
 
     if (!coverageArea) {
+      console.log('NO COVERAGE AREA FOUND for postcode:', cleanPostcode);
+      console.log('========== END COVERAGE CHECK ==========\n');
       return NextResponse.json({
         available: false,
         message: 'Service not available in your area yet',
         packages: [],
       });
     }
+
+    console.log('FOUND coverage area:', coverageArea);
 
     // Get packages for this coverage area
     const coveragePackageLinks = await db
@@ -73,7 +84,7 @@ export async function GET(request: NextRequest) {
     // Filter to only packages linked to this coverage area
     const filteredPackages = availablePackages.filter(pkg => packageIds.includes(pkg.id));
 
-    return NextResponse.json({
+    const response = {
       available: true,
       coverageArea: coverageArea.postcodePrefix,
       packages: filteredPackages.map(pkg => ({
@@ -85,7 +96,12 @@ export async function GET(request: NextRequest) {
         features: JSON.parse(pkg.features),
         isPopular: pkg.isPopular,
       })),
-    });
+    };
+
+    console.log('RESPONSE:', JSON.stringify(response, null, 2));
+    console.log('========== END COVERAGE CHECK ==========\n');
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Coverage check error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

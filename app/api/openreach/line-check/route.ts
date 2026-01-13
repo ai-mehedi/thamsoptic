@@ -116,7 +116,8 @@ function parseLineCharacteristicsResponse(xml: string): TechnologyAvailability {
 
   // Extract L2SId codes and check if service is available
   // Service is ONLY available if L2S ID matches BAAGNV or BAAFBJ
-  const l2sIdRegex = /<L2SId>([^<]+)<\/L2SId>/g;
+  // Regex handles XML namespaces like <ns10_10:L2SId> or <L2SId>
+  const l2sIdRegex = /<(?:[\w]+:)?L2SId>([^<]+)<\/(?:[\w]+:)?L2SId>/g;
   let match;
   while ((match = l2sIdRegex.exec(xml)) !== null) {
     result.l2sIds.push(match[1]);

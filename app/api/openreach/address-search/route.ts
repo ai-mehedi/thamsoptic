@@ -159,12 +159,6 @@ async function makeOpenreachRequest(xmlData: string): Promise<string> {
   const keyPath = path.join(basePath, 'api.key.pem');
   const caPath = path.join(basePath, 'cacert.pem');
 
-  // Log paths for debugging
-  console.log('Loading certificates from:', basePath);
-  console.log('Cert exists:', fs.existsSync(certPath));
-  console.log('Key exists:', fs.existsSync(keyPath));
-  console.log('CA exists:', fs.existsSync(caPath));
-
   if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
     throw new Error(`Certificates not found at ${basePath}. Set CERT_PATH environment variable.`);
   }
@@ -233,38 +227,19 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    console.log('\n========== OPENREACH ADDRESS SEARCH DEBUG ==========');
-    console.log('Input postcode:', postcode);
-
     const cleanPostcode = postcode.replace(/\s/g, '');
-    console.log('Cleaned postcode:', cleanPostcode);
-
     const xmlRequest = buildAddressSearchXML(cleanPostcode);
-    console.log('Sending XML request to Openreach...');
-
     const xmlResponse = await makeOpenreachRequest(xmlRequest);
-    console.log('Raw XML Response length:', xmlResponse.length);
-    console.log('Raw XML Response (first 2000 chars):', xmlResponse.substring(0, 2000));
-
     const addresses = parseAddressResponse(xmlResponse);
-    console.log('Parsed addresses count:', addresses.length);
-    console.log('Parsed addresses:', JSON.stringify(addresses, null, 2));
 
-    const response = {
+    return NextResponse.json({
       success: true,
       postcode: postcode,
       addresses: addresses,
       count: addresses.length,
-    };
-
-    console.log('RESPONSE:', JSON.stringify(response, null, 2));
-    console.log('========== END ADDRESS SEARCH ==========\n');
-
-    return NextResponse.json(response);
+    });
   } catch (error) {
-    console.error('\n========== OPENREACH ADDRESS SEARCH ERROR ==========');
     console.error('Openreach API error:', error);
-    console.error('========== END ERROR ==========\n');
     return NextResponse.json({
       success: false,
       error: 'Unable to connect to Openreach. Please check your network connection.',

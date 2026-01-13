@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Package, ShoppingCart, MapPin, MessageSquare, LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
+import { Package, ShoppingCart, MessageSquare, LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
 
 interface Admin {
     id: string;
@@ -67,7 +67,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
         { href: '/admin/packages', label: 'Packages', icon: Package },
-        { href: '/admin/coverage', label: 'Coverage', icon: MapPin },
         { href: '/admin/contacts', label: 'Contacts', icon: MessageSquare },
     ];
 

@@ -136,9 +136,6 @@ async function makeOpenreachRequest(xmlData: string): Promise<string> {
   const keyPath = path.join(basePath, 'api.key.pem');
   const caPath = path.join(basePath, 'cacert.pem');
 
-  // Log paths for debugging
-  console.log('Loading certificates from:', basePath);
-
   if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
     throw new Error(`Certificates not found at ${basePath}. Set CERT_PATH environment variable.`);
   }
@@ -210,42 +207,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    console.log('\n========== OPENREACH LINE CHECK DEBUG ==========');
-    console.log('Input refNum:', refNum);
-    console.log('Input districtCode:', districtCode);
-    console.log('Available switch codes:', AVAILABLE_SWITCH_CODES);
-
     const xmlRequest = buildLineCharacteristicsXML(refNum, districtCode);
-    console.log('Sending XML request to Openreach...');
-
     const xmlResponse = await makeOpenreachRequest(xmlRequest);
-    console.log('Raw XML Response length:', xmlResponse.length);
-    console.log('Raw XML Response (first 3000 chars):', xmlResponse.substring(0, 3000));
-
-    // Log any L2S related content in the XML
-    console.log('\n===== SEARCHING FOR L2S IN XML =====');
-    if (xmlResponse.includes('L2S')) {
-      console.log('Found L2S in response!');
-      // Find and log L2S sections
-      const l2sMatches = xmlResponse.match(/.{0,100}L2S.{0,100}/g);
-      if (l2sMatches) {
-        l2sMatches.forEach((match, i) => console.log(`L2S match ${i + 1}:`, match));
-      }
-    } else {
-      console.log('NO L2S found anywhere in XML response');
-    }
-    console.log('===== END L2S SEARCH =====\n');
-
     const availability = parseLineCharacteristicsResponse(xmlResponse);
-    console.log('Parsed availability:', JSON.stringify(availability, null, 2));
-    console.log('L2S IDs found:', availability.l2sIds);
-    console.log('Is service available (L2S match):', availability.isServiceAvailable);
 
-    // IMPORTANT: Service is ONLY available if L2S ID matches BAAGNV or BAAFBJ
-    // If no match, return empty packages (will show contact form on frontend)
+    // Service is ONLY available if L2S ID matches configured switch codes
     if (!availability.isServiceAvailable) {
-      console.log('SERVICE NOT AVAILABLE - No matching L2S ID');
-      console.log('========== END LINE CHECK ==========\n');
       return NextResponse.json({
         success: true,
         availability: availability,
@@ -295,22 +262,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const response = {
+    return NextResponse.json({
       success: true,
       availability: availability,
       packages: packages,
       hasService: packages.length > 0,
-    };
-
-    console.log('SERVICE AVAILABLE - Packages:', packages.length);
-    console.log('RESPONSE:', JSON.stringify(response, null, 2));
-    console.log('========== END LINE CHECK ==========\n');
-
-    return NextResponse.json(response);
+    });
   } catch (error) {
-    console.error('\n========== OPENREACH LINE CHECK ERROR ==========');
     console.error('Openreach Line Check error:', error);
-    console.error('========== END ERROR ==========\n');
     return NextResponse.json({
       success: false,
       error: 'Unable to check line availability. Please try again later.',

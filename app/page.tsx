@@ -94,7 +94,7 @@ export default async function HomePage() {
             </section>
 
             {/* Trust Badges */}
-            <section className="py-8 px-4 max-w-7xl mx-auto mt-8 relative z-20">
+            <section className="py-8 px-4 max-w-7xl mx-auto mt-8 relative z-0">
                 <TrustBadges layout="horizontal" />
             </section>
 

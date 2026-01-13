@@ -1,32 +1,29 @@
 "use client";
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, Package, MapPin, MessageSquare, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { ShoppingCart, Package, MessageSquare, Clock } from 'lucide-react';
 
 interface Stats {
     orders: { total: number; pending: number; };
     packages: number;
-    coverage: number;
     contacts: { total: number; new: number; };
 }
 
 export default function AdminDashboard() {
-    const [stats, setStats] = useState<Stats>({ orders: { total: 0, pending: 0 }, packages: 0, coverage: 0, contacts: { total: 0, new: 0 } });
+    const [stats, setStats] = useState<Stats>({ orders: { total: 0, pending: 0 }, packages: 0, contacts: { total: 0, new: 0 } });
     const [recentOrders, setRecentOrders] = useState<Array<{ orderNumber: string; firstName: string; lastName: string; packageName: string; status: string; createdAt: string }>>([]);
 
     useEffect(() => {
         async function fetchData() {
             try {
-                const [ordersRes, packagesRes, coverageRes, contactsRes] = await Promise.all([
+                const [ordersRes, packagesRes, contactsRes] = await Promise.all([
                     fetch('/api/admin/orders'),
                     fetch('/api/admin/packages'),
-                    fetch('/api/admin/coverage'),
                     fetch('/api/admin/contacts'),
                 ]);
 
                 const ordersData = await ordersRes.json();
                 const packagesData = await packagesRes.json();
-                const coverageData = await coverageRes.json();
                 const contactsData = await contactsRes.json();
 
                 setStats({
@@ -35,7 +32,6 @@ export default function AdminDashboard() {
                         pending: ordersData.orders?.filter((o: { status: string }) => o.status === 'PENDING').length || 0,
                     },
                     packages: packagesData.packages?.length || 0,
-                    coverage: coverageData.coverageAreas?.length || 0,
                     contacts: {
                         total: contactsData.contacts?.length || 0,
                         new: contactsData.contacts?.filter((c: { status: string }) => c.status === 'NEW').length || 0,
@@ -54,7 +50,6 @@ export default function AdminDashboard() {
     const statCards = [
         { label: 'Total Orders', value: stats.orders.total, subValue: `${stats.orders.pending} pending`, icon: ShoppingCart, color: 'blue', href: '/admin/orders' },
         { label: 'Packages', value: stats.packages, subValue: 'Active packages', icon: Package, color: 'green', href: '/admin/packages' },
-        { label: 'Coverage Areas', value: stats.coverage, subValue: 'Postcodes covered', icon: MapPin, color: 'purple', href: '/admin/coverage' },
         { label: 'Contact Requests', value: stats.contacts.total, subValue: `${stats.contacts.new} new`, icon: MessageSquare, color: 'amber', href: '/admin/contacts' },
     ];
 
@@ -130,7 +125,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Link href="/admin/orders?status=PENDING" className="flex items-center gap-4 p-4 bg-amber-50 rounded-xl border border-amber-200 hover:bg-amber-100 transition-colors">
                     <Clock className="w-8 h-8 text-amber-600" />
                     <div>
@@ -143,13 +138,6 @@ export default function AdminDashboard() {
                     <div>
                         <p className="font-semibold text-blue-900">New Contacts</p>
                         <p className="text-sm text-blue-700">{stats.contacts.new} new enquiries</p>
-                    </div>
-                </Link>
-                <Link href="/admin/coverage" className="flex items-center gap-4 p-4 bg-green-50 rounded-xl border border-green-200 hover:bg-green-100 transition-colors">
-                    <TrendingUp className="w-8 h-8 text-green-600" />
-                    <div>
-                        <p className="font-semibold text-green-900">Expand Coverage</p>
-                        <p className="text-sm text-green-700">Add new postcode areas</p>
                     </div>
                 </Link>
             </div>

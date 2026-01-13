@@ -221,6 +221,20 @@ export async function GET(request: NextRequest) {
     console.log('Raw XML Response length:', xmlResponse.length);
     console.log('Raw XML Response (first 3000 chars):', xmlResponse.substring(0, 3000));
 
+    // Log any L2S related content in the XML
+    console.log('\n===== SEARCHING FOR L2S IN XML =====');
+    if (xmlResponse.includes('L2S')) {
+      console.log('Found L2S in response!');
+      // Find and log L2S sections
+      const l2sMatches = xmlResponse.match(/.{0,100}L2S.{0,100}/g);
+      if (l2sMatches) {
+        l2sMatches.forEach((match, i) => console.log(`L2S match ${i + 1}:`, match));
+      }
+    } else {
+      console.log('NO L2S found anywhere in XML response');
+    }
+    console.log('===== END L2S SEARCH =====\n');
+
     const availability = parseLineCharacteristicsResponse(xmlResponse);
     console.log('Parsed availability:', JSON.stringify(availability, null, 2));
     console.log('L2S IDs found:', availability.l2sIds);

@@ -20,7 +20,11 @@
       "Bash(openssl x509:*)",
       "Bash(curl:*)",
       "Bash(openssl rsa:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(cd:*)",
+      "Bash(dir:*)",
+      "Bash(npx drizzle-kit:*)",
+      "Bash(sqlite3:*)"
     ]
   }
 }

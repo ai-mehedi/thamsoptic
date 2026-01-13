@@ -97,27 +97,32 @@ function CheckoutContent() {
         setIsSubmitting(true);
 
         try {
-            const response = await fetch('/api/orders', {
+            // Create GoCardless billing request and redirect to payment
+            const response = await fetch('/api/gocardless/create-billing-request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ...formData,
                     packageId: orderData?.packageId,
+                    packageName: orderData?.packageName,
+                    packagePrice: orderData?.packagePrice,
+                    packageSpeed: orderData?.packageSpeed,
                 }),
             });
 
             const result = await response.json();
 
-            if (result.success) {
-                setOrderNumber(result.orderNumber);
-                setIsComplete(true);
-                sessionStorage.removeItem('orderData');
+            if (result.success && result.authorisationUrl) {
+                // Store order number for success page
+                sessionStorage.setItem('pendingOrderNumber', result.orderNumber);
+                // Redirect to GoCardless payment page
+                window.location.href = result.authorisationUrl;
             } else {
-                setError(result.error || 'Failed to submit order');
+                setError(result.error || 'Failed to create payment request');
+                setIsSubmitting(false);
             }
         } catch {
             setError('Something went wrong. Please try again.');
-        } finally {
             setIsSubmitting(false);
         }
     };
@@ -319,15 +324,15 @@ function CheckoutContent() {
                                     {isSubmitting ? (
                                         <>
                                             <Loader2 className="w-5 h-5 animate-spin" />
-                                            Submitting...
+                                            Redirecting to payment...
                                         </>
                                     ) : (
-                                        'Submit Order'
+                                        'Continue to Payment'
                                     )}
                                 </button>
 
                                 <p className="text-xs text-slate-500 text-center">
-                                    No payment required now. We&apos;ll contact you to confirm details and arrange installation.
+                                    You&apos;ll be redirected to set up your Direct Debit payment securely via GoCardless.
                                 </p>
                             </form>
                         </div>

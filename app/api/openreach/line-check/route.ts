@@ -6,8 +6,10 @@ import path from 'path';
 const OPENREACH_URL = 'https://www.ws.openreach.co.uk:9443/emp/5100/EnhancedManageLineCharacteristics';
 const DUNS_ID = '218578231';
 
-// Special pricing codes
-const SPECIAL_PRICING_CODES = ['BAAGNV', 'BAAFBJ'];
+// Available switch codes - ONLY these switches have service
+// If L2S ID matches any of these codes, service is available
+// Otherwise, redirect to contact form
+const AVAILABLE_SWITCH_CODES = ['BAAGNV', 'BAAFBJ'];
 
 function buildLineCharacteristicsXML(refNum: string, districtCode: string): string {
   const now = new Date().toISOString().split('.')[0];
@@ -66,7 +68,7 @@ interface TechnologyAvailability {
   fttpAvailable: boolean;
   sogeaAvailable: boolean;
   copperAvailable: boolean;
-  isSpecialPricing: boolean;
+  isServiceAvailable: boolean; // True ONLY if L2S ID matches available switch codes
   l2sIds: string[];
   technologies: string[];
   rawData?: string;
@@ -78,7 +80,7 @@ function parseLineCharacteristicsResponse(xml: string): TechnologyAvailability {
     fttpAvailable: false,
     sogeaAvailable: false,
     copperAvailable: false,
-    isSpecialPricing: false,
+    isServiceAvailable: false, // Will be true only if L2S ID matches BAAGNV or BAAFBJ
     l2sIds: [],
     technologies: [],
   };
@@ -112,13 +114,14 @@ function parseLineCharacteristicsResponse(xml: string): TechnologyAvailability {
     result.technologies.push('Copper');
   }
 
-  // Extract L2SId codes for special pricing
+  // Extract L2SId codes and check if service is available
+  // Service is ONLY available if L2S ID matches BAAGNV or BAAFBJ
   const l2sIdRegex = /<L2SId>([^<]+)<\/L2SId>/g;
   let match;
   while ((match = l2sIdRegex.exec(xml)) !== null) {
     result.l2sIds.push(match[1]);
-    if (SPECIAL_PRICING_CODES.includes(match[1])) {
-      result.isSpecialPricing = true;
+    if (AVAILABLE_SWITCH_CODES.includes(match[1])) {
+      result.isServiceAvailable = true;
     }
   }
 
@@ -210,6 +213,18 @@ export async function GET(request: NextRequest) {
     const xmlResponse = await makeOpenreachRequest(xmlRequest);
     const availability = parseLineCharacteristicsResponse(xmlResponse);
 
+    // IMPORTANT: Service is ONLY available if L2S ID matches BAAGNV or BAAFBJ
+    // If no match, return empty packages (will show contact form on frontend)
+    if (!availability.isServiceAvailable) {
+      return NextResponse.json({
+        success: true,
+        availability: availability,
+        packages: [],
+        hasService: false,
+        message: 'Service not available at this location. Please contact us for more information.',
+      });
+    }
+
     // Determine available packages based on technology
     const packages = [];
 
@@ -218,7 +233,7 @@ export async function GET(request: NextRequest) {
         id: 'ultra',
         name: 'Broadband Anywhere Ultra',
         speed: '500 Mbit/s',
-        price: availability.isSpecialPricing ? 30.00 : 50.00,
+        price: 50.00,
         description: 'Perfect for offices, UHD streaming & heavy usage',
         features: ['500 Mbps download', 'Unlimited data', 'Free router', 'Static IP available'],
         isPopular: true,
@@ -242,7 +257,7 @@ export async function GET(request: NextRequest) {
         id: 'essential',
         name: 'Broadband Anywhere Essential',
         speed: '37 Mbit/s',
-        price: availability.isSpecialPricing ? 16.50 : 31.99,
+        price: 31.99,
         description: 'Perfect for low users & occasional usage',
         features: ['37 Mbps download', 'Unlimited data', 'Free router'],
         isPopular: false,

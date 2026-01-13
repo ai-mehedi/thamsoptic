@@ -46,7 +46,7 @@ export const coveragePackages = sqliteTable('coverage_packages', {
 export const orders = sqliteTable('orders', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   orderNumber: text('order_number').notNull().unique(),
-  status: text('status', { enum: ['PENDING', 'CONTACTED', 'SCHEDULED', 'INSTALLED', 'CANCELLED'] }).default('PENDING'),
+  status: text('status', { enum: ['PENDING', 'PENDING_PAYMENT', 'PAYMENT_COMPLETE', 'CONTACTED', 'SCHEDULED', 'INSTALLED', 'CANCELLED'] }).default('PENDING'),
 
   // Customer details
   firstName: text('first_name').notNull(),
@@ -56,8 +56,15 @@ export const orders = sqliteTable('orders', {
   address: text('address').notNull(),
   postcode: text('postcode').notNull(),
 
-  // Package details
-  packageId: text('package_id').notNull().references(() => packages.id),
+  // Package details (stored at time of order)
+  packageId: text('package_id').notNull(),
+  packageName: text('package_name'),
+  packagePrice: text('package_price'),
+
+  // GoCardless payment details
+  paymentUrl: text('payment_url'),
+  gcBillingRequestId: text('gc_billing_request_id'),
+  gcMandateId: text('gc_mandate_id'),
 
   // Additional info
   notes: text('notes'),

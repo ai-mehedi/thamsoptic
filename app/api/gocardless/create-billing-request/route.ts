@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
         packageId: data.packageId,
         packageName: data.packageName,
         packagePrice: data.packagePrice.toString(),
-        status: 'pending_payment',
+        status: 'PENDING_PAYMENT',
         paymentUrl: authorisationUrl,
       });
     } catch (dbError) {

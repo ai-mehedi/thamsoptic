@@ -3,7 +3,10 @@ import { db } from '@/lib/db';
 import { orders } from '@/lib/db/schema';
 
 // GoCardless API configuration
-const GOCARDLESS_API_URL = 'https://api.gocardless.com/billing_request_templates';
+// Use sandbox URL for testing, live URL for production
+const GOCARDLESS_BASE_URL = process.env.GOCARDLESS_ENVIRONMENT === 'live'
+  ? 'https://api.gocardless.com'
+  : 'https://api-sandbox.gocardless.com';
 const GOCARDLESS_VERSION = '2015-07-06';
 
 // Use environment variable for access token (set in .env.local)
@@ -24,6 +27,25 @@ interface BillingRequestData {
   packageName: string;
   packagePrice: number;
   packageSpeed?: string;
+}
+
+async function goCardlessRequest(endpoint: string, body: object) {
+  const response = await fetch(`${GOCARDLESS_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${GOCARDLESS_ACCESS_TOKEN}`,
+      'Content-Type': 'application/json',
+      'GoCardless-Version': GOCARDLESS_VERSION,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    console.error(`GoCardless ${endpoint} error:`, data);
+    throw new Error(data.error?.message || 'GoCardless API error');
+  }
+  return data;
 }
 
 export async function POST(request: NextRequest) {
@@ -59,43 +81,52 @@ export async function POST(request: NextRequest) {
     // Convert price to pence (GoCardless uses smallest currency unit)
     const amountInPence = Math.round(data.packagePrice * 100);
 
-    // Create billing request template payload
+    // Step 1: Create a billing request
     const billingRequestPayload = {
-      billing_request_templates: {
-        name: data.packageName,
-        payment_request_description: paymentDescription,
-        payment_request_currency: 'GBP',
-        payment_request_amount: amountInPence,
-        mandate_request_currency: 'GBP',
-        redirect_uri: SUCCESS_REDIRECT_URL,
+      billing_requests: {
+        mandate_request: {
+          scheme: 'bacs',
+        },
+        payment_request: {
+          description: paymentDescription,
+          amount: String(amountInPence),
+          currency: 'GBP',
+        },
+        metadata: {
+          customer_name: `${data.firstName} ${data.lastName}`,
+          customer_email: data.email,
+          package_name: data.packageName,
+        },
       }
     };
 
-    // Call GoCardless API
-    const gcResponse = await fetch(GOCARDLESS_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GOCARDLESS_ACCESS_TOKEN}`,
-        'Content-Type': 'application/json',
-        'GoCardless-Version': GOCARDLESS_VERSION,
-      },
-      body: JSON.stringify(billingRequestPayload),
-    });
+    const billingRequestData = await goCardlessRequest('/billing_requests', billingRequestPayload);
+    const billingRequestId = billingRequestData.billing_requests?.id;
 
-    if (!gcResponse.ok) {
-      const errorData = await gcResponse.json();
-      console.error('GoCardless API error:', errorData);
+    if (!billingRequestId) {
+      console.error('No billing request ID returned:', billingRequestData);
       return NextResponse.json({
         success: false,
-        error: 'Failed to create payment request'
+        error: 'Failed to create billing request'
       }, { status: 500 });
     }
 
-    const gcData = await gcResponse.json();
-    const authorisationUrl = gcData.billing_request_templates?.authorisation_url;
+    // Step 2: Create a billing request flow to get the authorization URL
+    const flowPayload = {
+      billing_request_flows: {
+        redirect_uri: SUCCESS_REDIRECT_URL,
+        exit_uri: SUCCESS_REDIRECT_URL,
+        links: {
+          billing_request: billingRequestId,
+        },
+      }
+    };
+
+    const flowData = await goCardlessRequest('/billing_request_flows', flowPayload);
+    const authorisationUrl = flowData.billing_request_flows?.authorisation_url;
 
     if (!authorisationUrl) {
-      console.error('No authorisation URL returned:', gcData);
+      console.error('No authorisation URL returned:', flowData);
       return NextResponse.json({
         success: false,
         error: 'Failed to get payment URL'

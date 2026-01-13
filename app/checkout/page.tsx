@@ -213,166 +213,170 @@ function CheckoutContent() {
                     Back to home
                 </Link>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Form */}
-                    <div className="lg:col-span-2">
-                        <div className="bg-white rounded-2xl border border-slate-200 p-8">
-                            <h1 className="text-2xl font-bold mb-6">Complete Your Order</h1>
+                <form onSubmit={handleSubmit}>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Form */}
+                        <div className="lg:col-span-2">
+                            <div className="bg-white rounded-2xl border border-slate-200 p-8">
+                                <h1 className="text-2xl font-bold mb-6">Complete Your Order</h1>
 
-                            {error && (
-                                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-                                    {error}
-                                </div>
-                            )}
-
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-2">First Name *</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={formData.firstName}
-                                            onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                        />
+                                {error && (
+                                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                                        {error}
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-2">Last Name *</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={formData.lastName}
-                                            onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                        />
-                                    </div>
-                                </div>
+                                )}
 
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Email Address *</label>
-                                    <input
-                                        type="email"
-                                        required
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Phone Number *</label>
-                                    <input
-                                        type="tel"
-                                        required
-                                        placeholder="07123 456789"
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Installation Address *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.address}
-                                        onChange={(e) => setFormData({...formData, address: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Postcode *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.postcode}
-                                        onChange={(e) => setFormData({...formData, postcode: e.target.value.toUpperCase()})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Additional Notes (optional)</label>
-                                    <textarea
-                                        rows={3}
-                                        value={formData.notes}
-                                        onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                                        placeholder="Any special requirements or preferred contact times..."
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none"
-                                    />
-                                </div>
-
-                                <div className="pt-4 border-t border-slate-100">
-                                    <label className="flex items-start gap-3 cursor-pointer">
-                                        <input type="checkbox" required className="w-5 h-5 rounded border-slate-300 text-blue-800 mt-0.5" />
-                                        <span className="text-sm text-slate-600">
-                                            I agree to the{' '}
-                                            <Link href="/legal/terms" className="text-blue-800 hover:underline">Terms of Service</Link> and{' '}
-                                            <Link href="/legal/privacy" className="text-blue-800 hover:underline">Privacy Policy</Link>.
-                                        </span>
-                                    </label>
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className="w-full bg-blue-800 hover:bg-blue-900 text-white py-4 rounded-xl font-bold transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
-                                >
-                                    {isSubmitting ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                            Redirecting to payment...
-                                        </>
-                                    ) : (
-                                        'Continue to Payment'
-                                    )}
-                                </button>
-
-                                <p className="text-xs text-slate-500 text-center">
-                                    You&apos;ll be redirected to set up your Direct Debit payment securely via GoCardless.
-                                </p>
-                            </form>
-                        </div>
-                    </div>
-
-                    {/* Order Summary */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-white rounded-2xl border border-slate-200 p-6 sticky top-24">
-                            <h3 className="text-lg font-bold mb-4">Order Summary</h3>
-
-                            <div className="space-y-4 pb-4 border-b border-slate-100">
-                                <div>
-                                    <div className="font-semibold text-lg">{orderData?.packageName}</div>
-                                    <div className="text-sm text-slate-500">{orderData?.packageSpeed}</div>
-                                </div>
-
-                                <div className="flex justify-between">
-                                    <span className="text-slate-600">Monthly price</span>
-                                    <span className="font-bold text-xl">£{orderData?.packagePrice.toFixed(2)}</span>
-                                </div>
-
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-600">Setup fee</span>
-                                    <span className="text-green-600 font-medium">FREE</span>
-                                </div>
-                            </div>
-
-                            <div className="mt-4 pt-4 border-t border-slate-100">
-                                <div className="space-y-2">
-                                    {['Unlimited data', 'No price rises', 'Free installation', 'WiFi 6 router included', 'UK support 24/7'].map((item, i) => (
-                                        <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
-                                            <Check className="w-4 h-4 text-green-600" />
-                                            {item}
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-2">First Name *</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={formData.firstName}
+                                                onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                            />
                                         </div>
-                                    ))}
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-2">Last Name *</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={formData.lastName}
+                                                onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">Email Address *</label>
+                                        <input
+                                            type="email"
+                                            required
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">Phone Number *</label>
+                                        <input
+                                            type="tel"
+                                            required
+                                            placeholder="07123 456789"
+                                            value={formData.phone}
+                                            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">Installation Address *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.address}
+                                            onChange={(e) => setFormData({...formData, address: e.target.value})}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">Postcode *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.postcode}
+                                            onChange={(e) => setFormData({...formData, postcode: e.target.value.toUpperCase()})}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">Additional Notes (optional)</label>
+                                        <textarea
+                                            rows={3}
+                                            value={formData.notes}
+                                            onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                                            placeholder="Any special requirements or preferred contact times..."
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none"
+                                        />
+                                    </div>
+
+                                    <div className="pt-4 border-t border-slate-100">
+                                        <label className="flex items-start gap-3 cursor-pointer">
+                                            <input type="checkbox" required className="w-5 h-5 rounded border-slate-300 text-blue-800 mt-0.5" />
+                                            <span className="text-sm text-slate-600">
+                                                I agree to the{' '}
+                                                <Link href="/legal/terms" className="text-blue-800 hover:underline">Terms of Service</Link> and{' '}
+                                                <Link href="/legal/privacy" className="text-blue-800 hover:underline">Privacy Policy</Link>.
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Order Summary */}
+                        <div className="lg:col-span-1">
+                            <div className="bg-white rounded-2xl border border-slate-200 p-6 sticky top-24">
+                                <h3 className="text-lg font-bold mb-4">Order Summary</h3>
+
+                                <div className="space-y-4 pb-4 border-b border-slate-100">
+                                    <div>
+                                        <div className="font-semibold text-lg">{orderData?.packageName}</div>
+                                        <div className="text-sm text-slate-500">{orderData?.packageSpeed}</div>
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-600">Monthly price</span>
+                                        <span className="font-bold text-xl">£{orderData?.packagePrice.toFixed(2)}</span>
+                                    </div>
+
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-600">Setup fee</span>
+                                        <span className="text-green-600 font-medium">FREE</span>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 pt-4 border-t border-slate-100">
+                                    <div className="space-y-2">
+                                        {['Unlimited data', 'No price rises', 'Free installation', 'WiFi 6 router included', 'UK support 24/7'].map((item, i) => (
+                                            <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
+                                                <Check className="w-4 h-4 text-green-600" />
+                                                {item}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* GoCardless Payment Button */}
+                                <div className="mt-6 pt-6 border-t border-slate-100">
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="w-full bg-[#1D4ED8] hover:bg-[#1e40af] text-white py-4 px-6 rounded-lg transition-colors disabled:opacity-70 flex items-center justify-center text-lg whitespace-nowrap"
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                <span className="ml-2">Redirecting...</span>
+                                            </>
+                                        ) : (
+                                            <span>Pay with <span className="font-bold">GO</span>CARDLESS</span>
+                                        )}
+                                    </button>
+                                    <p className="text-xs text-slate-500 text-center mt-3">
+                                        Secure Direct Debit payment
+                                    </p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </form>
             </div>
 
             <Footer />

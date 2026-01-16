@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate order number
-    const orderNumber = `AB${Date.now().toString(36).toUpperCase()}`;
+    const orderNumber = `TO${Date.now().toString(36).toUpperCase()}`;
 
     // Save order to database with pending payment status
     try {

@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
       packages: allPackages.map(pkg => ({
         ...pkg,
         features: JSON.parse(pkg.features),
+        technology: pkg.technology,
       })),
     });
   } catch (error) {
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, speed, price, description, features, isPopular, isActive, sortOrder } = body;
+    const { name, speed, price, description, features, technology, isPopular, isActive, sortOrder } = body;
 
     if (!name || !speed || !price || !description || !features) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
       price: parseFloat(price),
       description,
       features: JSON.stringify(features),
+      technology: technology || 'FTTC',
       isPopular: isPopular || false,
       isActive: isActive !== false,
       sortOrder: sortOrder || 0,
@@ -90,7 +92,7 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, name, speed, price, description, features, isPopular, isActive, sortOrder } = body;
+    const { id, name, speed, price, description, features, technology, isPopular, isActive, sortOrder } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Package ID is required' }, { status: 400 });
@@ -103,6 +105,7 @@ export async function PUT(request: NextRequest) {
         price: parseFloat(price),
         description,
         features: JSON.stringify(features),
+        technology: technology || 'FTTC',
         isPopular,
         isActive,
         sortOrder,

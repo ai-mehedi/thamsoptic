@@ -1,5 +1,5 @@
 import { db } from './index';
-import { admins, packages, orders, contactRequests } from './schema';
+import { admins, packages, orders, contactRequests, coveragePackages } from './schema';
 import bcrypt from 'bcryptjs';
 
 async function seed() {
@@ -7,6 +7,7 @@ async function seed() {
 
   // Clear existing data (order matters due to foreign keys)
   console.log('Clearing existing data...');
+  await db.delete(coveragePackages); // Must delete junction table first
   await db.delete(orders);
   await db.delete(contactRequests);
   await db.delete(packages);
@@ -21,74 +22,59 @@ async function seed() {
   }).returning();
   console.log('Created admin user:', admin.email);
 
-  // Create packages
-  const packageData = [
+  // Create packages - Broadband Anywhere packages
+  const packageData: {
+    name: string;
+    speed: string;
+    price: number;
+    description: string;
+    features: string;
+    technology: 'FTTP' | 'FTTC' | 'SOGEA' | 'Copper';
+    isPopular: boolean;
+    sortOrder: number;
+  }[] = [
     {
-      name: 'Essential Fibre',
-      speed: '150 Mbps',
-      price: 27.99,
-      description: 'Perfect for browsing & streaming',
+      name: 'Broadband Anywhere Ultra',
+      speed: '500 Mbit/s',
+      price: 50.00,
+      description: 'Perfect for offices, UHD streaming & heavy usage',
       features: JSON.stringify([
-        '150 Mbps symmetric speed',
-        'Fiber VoIP included',
-        'No BT line required',
-        'WiFi 6 router included',
-        'No commitment',
+        '500 Mbps download',
+        'Unlimited data',
+        'Free router',
+        'Static IP available',
       ]),
-      isPopular: false,
+      technology: 'FTTP',
+      isPopular: true,
       sortOrder: 1,
     },
     {
-      name: 'Superfast Fibre',
-      speed: '500 Mbps',
+      name: 'Broadband Anywhere Plus',
+      speed: '68.36 Mbit/s',
       price: 34.99,
-      description: 'Great for families & WFH',
+      description: 'Great for higher usage & heavier users',
       features: JSON.stringify([
-        '500 Mbps symmetric speed',
-        'Fiber VoIP included',
-        'No BT line required',
-        'WiFi 6 router included',
-        'No commitment',
-        'Priority UK support',
+        '68 Mbps download',
+        'Unlimited data',
+        'Free router',
       ]),
-      isPopular: true,
+      technology: 'FTTC',
+      isPopular: false,
       sortOrder: 2,
     },
     {
-      name: 'Ultrafast Fibre',
-      speed: '1 Gbps',
-      price: 49.99,
-      description: 'For power users & gamers',
+      name: 'Broadband Anywhere Essential',
+      speed: '37 Mbit/s',
+      price: 31.99,
+      description: 'Perfect for low users & occasional usage',
       features: JSON.stringify([
-        '1 Gbps symmetric speed',
-        'Fiber VoIP included',
-        'No BT line required',
-        'WiFi 6 router included',
-        'No commitment',
-        'Priority UK support',
-        'Static IP address',
+        '37 Mbps download',
+        'Unlimited data',
+        'Free router',
       ]),
+      technology: 'FTTC',
       isPopular: false,
       sortOrder: 3,
-    },
-    {
-      name: 'Business 10G',
-      speed: '10 Gbps',
-      price: 199.99,
-      description: 'Enterprise-grade connectivity',
-      features: JSON.stringify([
-        '10 Gbps symmetric speed',
-        'Fiber VoIP included',
-        'Dedicated line - no contention',
-        'Custom network build available',
-        'No BT line required',
-        'Enterprise WiFi 6E router',
-        'Static IP block included',
-        '24/7 priority support',
-        'SLA guaranteed',
-      ]),
-      isPopular: false,
-      sortOrder: 4,
     },
   ];
 

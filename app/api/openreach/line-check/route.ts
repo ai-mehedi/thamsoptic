@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import https from 'https';
 import fs from 'fs';
 import path from 'path';
+import { db } from '@/lib/db';
+import { packages as packagesTable } from '@/lib/db/schema';
+import { eq, inArray, and } from 'drizzle-orm';
 
 const OPENREACH_URL = 'https://www.ws.openreach.co.uk:9443/emp/5100/EnhancedManageLineCharacteristics';
 const DUNS_ID = '218578231';
@@ -222,44 +225,54 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Determine available packages based on technology
-    const packages = [];
+    // Determine available technologies for filtering packages
+    const availableTechnologies: ('FTTP' | 'FTTC' | 'SOGEA' | 'Copper')[] = [];
 
     if (availability.fttpAvailable || availability.technologies.includes('PointToPointFibre')) {
-      packages.push({
-        id: 'ultra',
-        name: 'Broadband Anywhere Ultra',
-        speed: '500 Mbit/s',
-        price: 50.00,
-        description: 'Perfect for offices, UHD streaming & heavy usage',
-        features: ['500 Mbps download', 'Unlimited data', 'Free router', 'Static IP available'],
-        isPopular: true,
-        technology: 'FTTP',
-      });
+      availableTechnologies.push('FTTP');
     }
 
-    if (availability.fttcAvailable || availability.sogeaAvailable || availability.copperAvailable) {
-      packages.push({
-        id: 'plus',
-        name: 'Broadband Anywhere Plus',
-        speed: '68.36 Mbit/s',
-        price: 34.99,
-        description: 'Great for higher usage & heavier users',
-        features: ['68 Mbps download', 'Unlimited data', 'Free router'],
-        isPopular: false,
-        technology: 'FTTC',
+    if (availability.fttcAvailable || availability.sogeaAvailable) {
+      availableTechnologies.push('FTTC');
+      availableTechnologies.push('SOGEA');
+    }
+
+    if (availability.copperAvailable) {
+      availableTechnologies.push('Copper');
+      availableTechnologies.push('FTTC'); // FTTC packages also work on copper
+    }
+
+    // Fetch packages from database based on available technologies
+    let packages: Array<{
+      id: string;
+      name: string;
+      speed: string;
+      price: number;
+      description: string;
+      features: string[];
+      isPopular: boolean | null;
+      technology: string;
+    }> = [];
+
+    if (availableTechnologies.length > 0) {
+      const dbPackages = await db.query.packages.findMany({
+        where: and(
+          eq(packagesTable.isActive, true),
+          inArray(packagesTable.technology, availableTechnologies)
+        ),
+        orderBy: (packages, { asc }) => [asc(packages.sortOrder)],
       });
 
-      packages.push({
-        id: 'essential',
-        name: 'Broadband Anywhere Essential',
-        speed: '37 Mbit/s',
-        price: 31.99,
-        description: 'Perfect for low users & occasional usage',
-        features: ['37 Mbps download', 'Unlimited data', 'Free router'],
-        isPopular: false,
-        technology: 'FTTC',
-      });
+      packages = dbPackages.map(pkg => ({
+        id: pkg.id,
+        name: pkg.name,
+        speed: pkg.speed,
+        price: pkg.price,
+        description: pkg.description,
+        features: JSON.parse(pkg.features),
+        isPopular: pkg.isPopular,
+        technology: pkg.technology,
+      }));
     }
 
     return NextResponse.json({

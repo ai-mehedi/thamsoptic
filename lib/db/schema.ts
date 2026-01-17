@@ -18,6 +18,7 @@ export const packages = sqliteTable('packages', {
   price: real('price').notNull(), // Monthly price
   description: text('description').notNull(),
   features: text('features').notNull(), // JSON string of features array
+  technology: text('technology', { enum: ['FTTP', 'FTTC', 'SOGEA', 'Copper'] }).notNull().default('FTTC'), // Technology type
   isPopular: integer('is_popular', { mode: 'boolean' }).default(false),
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
   sortOrder: integer('sort_order').default(0),
@@ -76,6 +77,23 @@ export const contactRequests = sqliteTable('contact_requests', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
+// Coverage areas - links postcode prefixes to available packages
+export const coverageAreas = sqliteTable('coverage_areas', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  postcodePrefix: text('postcode_prefix').notNull(),
+  areaName: text('area_name').notNull().default(''),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+});
+
+// Junction table linking coverage areas to packages
+export const coveragePackages = sqliteTable('coverage_packages', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  coverageAreaId: text('coverage_area_id').notNull().references(() => coverageAreas.id),
+  packageId: text('package_id').notNull().references(() => packages.id),
+});
+
 // Type exports
 export type Admin = typeof admins.$inferSelect;
 export type NewAdmin = typeof admins.$inferInsert;
@@ -88,3 +106,9 @@ export type NewOrder = typeof orders.$inferInsert;
 
 export type ContactRequest = typeof contactRequests.$inferSelect;
 export type NewContactRequest = typeof contactRequests.$inferInsert;
+
+export type CoverageArea = typeof coverageAreas.$inferSelect;
+export type NewCoverageArea = typeof coverageAreas.$inferInsert;
+
+export type CoveragePackage = typeof coveragePackages.$inferSelect;
+export type NewCoveragePackage = typeof coveragePackages.$inferInsert;

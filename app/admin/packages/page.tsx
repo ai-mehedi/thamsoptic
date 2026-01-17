@@ -9,6 +9,7 @@ interface Package {
     price: number;
     description: string;
     features: string[];
+    technology: 'FTTP' | 'FTTC' | 'SOGEA' | 'Copper';
     isPopular: boolean;
     isActive: boolean;
     sortOrder: number;
@@ -21,7 +22,7 @@ export default function AdminPackages() {
     const [isCreating, setIsCreating] = useState(false);
 
     const emptyPackage: Omit<Package, 'id'> = {
-        name: '', speed: '', price: 0, description: '', features: [], isPopular: false, isActive: true, sortOrder: 0
+        name: '', speed: '', price: 0, description: '', features: [], technology: 'FTTC', isPopular: false, isActive: true, sortOrder: 0
     };
 
     const [formData, setFormData] = useState<Omit<Package, 'id'>>(emptyPackage);
@@ -121,6 +122,7 @@ export default function AdminPackages() {
                                         {pkg.isPopular && <Star className="w-4 h-4 text-amber-500" fill="currentColor" />}
                                     </div>
                                     <p className="text-slate-600">{pkg.speed}</p>
+                                    <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">{pkg.technology}</span>
                                 </div>
                                 <div className={`px-2 py-1 rounded-full text-xs font-medium ${pkg.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
                                     {pkg.isActive ? 'Active' : 'Inactive'}
@@ -175,9 +177,20 @@ export default function AdminPackages() {
                                     <input type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})} className="w-full px-3 py-2 border border-slate-200 rounded-lg" />
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                                <input type="text" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg" />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                                    <input type="text" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Technology</label>
+                                    <select value={formData.technology} onChange={(e) => setFormData({...formData, technology: e.target.value as Package['technology']})} className="w-full px-3 py-2 border border-slate-200 rounded-lg">
+                                        <option value="FTTP">FTTP (Full Fibre)</option>
+                                        <option value="FTTC">FTTC (Fibre to Cabinet)</option>
+                                        <option value="SOGEA">SOGEA</option>
+                                        <option value="Copper">Copper</option>
+                                    </select>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Features (one per line)</label>

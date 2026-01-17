@@ -18,6 +18,7 @@ export async function GET() {
         price: pkg.price,
         description: pkg.description,
         features: JSON.parse(pkg.features),
+        technology: pkg.technology,
         isPopular: pkg.isPopular,
       })),
     });
